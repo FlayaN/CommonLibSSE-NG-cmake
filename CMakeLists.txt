@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.26)
+
 function(add_simple_commonlibsse_ng_plugin)
   set(options OPTIONAL USE_ADDRESS_LIBRARY USE_SIGNATURE_SCANNING
               STRUCT_DEPENDENT EXCLUDE_FROM_ALL)
@@ -28,10 +30,11 @@ function(add_simple_commonlibsse_ng_plugin)
 
   _add_cxx_files("${SRC_FOLDER}")
 
-  set(CommonLibPath "extern/CommonLibSSE-NG")
+  find_commonlibng_path()
+  message(STATUS "Building using CommonLibSSE-NG at ${CommonLibPath}")
 
   set(BUILD_TESTS OFF)
-  add_subdirectory(${CommonLibPath} ${CommonLibName} EXCLUDE_FROM_ALL)
+  add_subdirectory(${CommonLibPath} CommonLibSSE EXCLUDE_FROM_ALL)
   include(${CommonLibPath}/cmake/CommonLibSSE.cmake)
 
   add_commonlibsse_plugin(${PROJECT_NAME} ${ARGN} SOURCES ${SOURCE_FILES}
@@ -114,6 +117,15 @@ macro(set_from_environment VARIABLE)
   endif()
 endmacro()
 
+macro(find_commonlibng_path)
+  find_path(CommonLibPath include/REL/Relocation.h PATHS extern/CommonLibSSE-NG)
+  if(${CommonLibPath} STREQUAL "CommonLibPath-NOTFOUND")
+    # Check path
+    set_from_environment(CommonLibSSE-NGPath)
+    set(CommonLibPath ${CommonLibSSE-NGPath})
+  endif()
+endmacro()
+
 function(_msvc_specific_init)
   # https://gitlab.kitware.com/cmake/cmake/-/issues/24922#note_1371990
   if(MSVC_VERSION GREATER_EQUAL 1936 AND MSVC_IDE) # 17.6+
@@ -145,45 +157,46 @@ function(_msvc_specific_init)
 
   target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:DEBUG>:DEBUG>")
 
-  set(SC_RELEASE_OPTS
-      "/Zi;/fp:fast;/GL;/Gy-;/Gm-;/Gw;/sdl-;/GS-;/guard:cf-;/O2;/Ob2;/Oi;/Ot;/Oy;/fp:except-"
-  )
-
   target_compile_options(
     "${PROJECT_NAME}"
-    PRIVATE /MP
-            /W3
-            /WX
-            /permissive-
-            /Zc:alignedNew
-            /Zc:auto
-            /Zc:__cplusplus
-            /Zc:externC
-            /Zc:externConstexpr
-            /Zc:forScope
-            /Zc:hiddenFriend
-            /Zc:implicitNoexcept
-            /Zc:lambda
-            /Zc:noexceptTypes
-            /Zc:preprocessor
-            /Zc:referenceBinding
-            /Zc:rvalueCast
-            /Zc:sizedDealloc
-            /Zc:strictStrings
-            /Zc:ternary
-            /Zc:threadSafeInit
-            /Zc:trigraphs
-            /Zc:wchar_t
-            /wd4200 # nonstandard extension used : zero-sized array in
-                    # struct/union
-            /arch:AVX)
-
-  target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:/fp:strict>")
-  target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:/ZI>")
-  target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:/Od>")
-  target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:/Gy>")
-  target_compile_options(${PROJECT_NAME}
-                         PUBLIC "$<$<CONFIG:RELEASE>:${SC_RELEASE_OPTS}>")
+    PRIVATE
+      /EHsc
+      /MP
+      /W4
+      /WX
+      /Zc:__cplusplus
+      /Zc:alignedNew
+      /Zc:auto
+      /Zc:enumTypes
+      /Zc:externC
+      /Zc:externConstexpr
+      /Zc:forScope
+      /Zc:hiddenFriend
+      /Zc:implicitNoexcept
+      /Zc:lambda
+      /Zc:noexceptTypes
+      /Zc:preprocessor
+      /Zc:referenceBinding
+      /Zc:rvalueCast
+      /Zc:sizedDealloc
+      /Zc:strictStrings
+      /Zc:templateScope
+      /Zc:ternary
+      /Zc:threadSafeInit
+      /Zc:trigraphs
+      /Zc:wchar_t
+      /arch:AVX
+      /cgthreads8
+      /diagnostics:caret
+      /external:W0
+      /external:anglebrackets
+      /fp:except-
+      /guard:cf-
+      /permissive-
+      /wd4200 # nonstandard extension used : zero-sized array in struct/union
+      "$<$<CONFIG:DEBUG>:/fp:strict;/Gy;/Od;/ZI>"
+      "$<$<CONFIG:RELEASE>:/fp:contract;/fp:fast;/GL;/Gm-;/GS-;/Gw;/Gy-;/O2;/Ob2;/Oi;/Ot;/Oy;/sdl-;/Zi>"
+  )
 
   target_link_options(
     ${PROJECT_NAME} PRIVATE /WX

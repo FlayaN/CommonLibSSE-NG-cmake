@@ -11,6 +11,15 @@ add_simple_commonlibsse_ng_plugin(
   ... also supports all options that add_commonlibsse_plugin func supports!
 )
 ```
+
+# Customize
+## Enviroment variables (can also be set using cmake options)
+- `CommonLibSSE-NGPath` If no `extern/CommonLibSSE-NG` is found this is used instead
+- `OUTPUT_DIRS` If set it will copy built result to these folders, use `;` as separator
+## Cmake options
+- `COPY_BUILD` default `ON`, will copy build to `OUTPUT_DIRS` specified above
+
+
 # List of all options that add_commonlibsse_plugin supports for reference
 
 ```cmake
